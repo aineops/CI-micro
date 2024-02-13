@@ -182,20 +182,21 @@ pipeline {
                     try {
                         echo 'Vérification de la disponibilité de localhost:8080...'
                         sh '''
-                            #!/bin/bash
                             set -x
                             max_attempts=30
-                            for ((i=1;i<=max_attempts;i++)); do
+                            count=0
+                            while [ $count -lt $max_attempts ]; do
                                 if curl -s http://localhost:8080; then
                                     echo "localhost:8080 est accessible. Exécution des tests Selenium."
                                     break
                                 else
-                                    echo "Attente de la disponibilité de localhost:8080... tentative $i de $max_attempts"
+                                    echo "Attente de la disponibilité de localhost:8080... tentative $((count + 1)) de $max_attempts"
                                     sleep 10
+                                    count=$((count + 1))
                                 fi
                             done
         
-                            if [ $i -gt $max_attempts ]; then
+                            if [ $count -eq $max_attempts ]; then
                                 echo "Échec : localhost:8080 n'est pas accessible après $max_attempts tentatives."
                                 exit 1
                             fi
@@ -203,8 +204,20 @@ pipeline {
         
                         echo 'Exécution des tests Selenium et mise à jour du rapport...'
                         sh '''
-                            . venv/bin/activate
-                            ./venv/bin/pytest --html=report.html > /reports/selenium_tests.txt
+                            sudo chmod -R 777 /app /reports
+                            cd /app
+                            # Créer un environnement virtuel Python
+                            python3 -m venv myenv
+                            
+                            # Activer l'environnement virtuel
+                            . myenv/bin/activate
+                            
+                            # Installer les packages requis
+                            pip install selenium pytest pytest-html faker webdriver_manager
+                            pytest tests.py --html=report.html > /reports/selenium_tests.txt
+                            
+                            # Configuration de Git pour autoriser le répertoire /reports
+                            git config --global --add safe.directory /reports
                             cd /reports
                             git pull origin master
                             git add selenium_tests.txt
