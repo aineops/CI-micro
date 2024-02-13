@@ -182,6 +182,7 @@ pipeline {
                     try {
                         echo 'Vérification de la disponibilité de localhost:8080...'
                         sh '''
+                            #!/bin/bash
                             set -x
                             max_attempts=30
                             for ((i=1;i<=max_attempts;i++)); do
